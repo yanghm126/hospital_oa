@@ -1,6 +1,7 @@
 package com.ruoyi.hr.mapper;
 
 import com.ruoyi.hr.domain.HrAttendanceRecord;
+import com.ruoyi.hr.domain.vo.HrAttendanceReportVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import java.util.List;
@@ -42,5 +43,12 @@ public interface HrAttendanceMapper {
      * 统计科室实际正常出勤人天
      */
     int selectDeptActualNormalCount(@Param("deptId") Long deptId, @Param("month") String month);
-}
 
+    /**
+     * 查询考勤月报列表
+     * @param deptId 部门ID
+     * @param month 月份 (yyyy-MM)
+     * @return 月报列表
+     */
+    List<HrAttendanceReportVO> selectAttendanceReport(@Param("deptId") Long deptId, @Param("month") String month);
+}

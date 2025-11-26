@@ -17,6 +17,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="deviceInfo"    column="device_info"    />
     </resultMap>
 
+    <resultMap type="com.ruoyi.hr.domain.vo.HrAttendanceReportVO" id="HrAttendanceReportResult">
+        <result property="userId"    column="user_id"    />
+        <result property="nickName"  column="nick_name"  />
+        <result property="deptName"  column="dept_name"  />
+        <result property="attendanceDays" column="attendance_days" />
+        <result property="lateCount" column="late_count" />
+        <result property="earlyLeaveCount" column="early_leave_count" />
+        <result property="missingCardCount" column="missing_card_count" />
+    </resultMap>
+
     <insert id="insertHrAttendanceRecord" parameterType="com.ruoyi.hr.domain.HrAttendanceRecord" useGeneratedKeys="true" keyProperty="recordId">
         insert into hr_attendance_record
         <trim prefix="(" suffix=")" suffixOverrides=",">
@@ -51,7 +61,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             COUNT(CASE WHEN result = '3' THEN 1 END) as earlyLeaveCount,
             COUNT(CASE WHEN result = '5' THEN 1 END) as missingCount,
             COUNT(CASE WHEN result = '4' THEN 1 END) as fieldWorkCount,
-            -- 假设请假需要在关联其他表，这里暂用缺卡代替演示，或者扩展result状态
             0 as leaveDays
         FROM hr_attendance_record
         WHERE user_id = #{userId}
@@ -77,7 +86,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           AND s.shift_id != 0
     </select>
 
-    <!-- 2.3 统计科室实际正常打卡次数 (这里简单按上班卡算) -->
+    <!-- 2.3 统计科室实际正常出勤人天 -->
     <select id="selectDeptActualNormalCount" resultType="int">
         SELECT COUNT(*)
         FROM hr_attendance_record r
@@ -85,8 +94,49 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         WHERE u.dept_id = #{deptId}
           AND DATE_FORMAT(r.check_time, '%Y-%m') = #{month}
           AND r.result = '1'
-          AND r.check_type = '1' -- 仅计算上班卡，避免下班卡重复计算出勤率
+          AND r.check_type = '1'
+    </select>
+
+    <!-- 3. 查询考勤月报列表 -->
+    <select id="selectAttendanceReport" resultMap="HrAttendanceReportResult">
+        SELECT
+            u.user_id,
+            u.nick_name,
+            d.dept_name,
+            -- 实际出勤天数 (有打卡记录的天数)
+            COALESCE(stats.attendance_days, 0) as attendance_days,
+            -- 迟到次数
+            COALESCE(stats.late_count, 0) as late_count,
+            -- 早退次数
+            COALESCE(stats.early_leave_count, 0) as early_leave_count,
+            -- 缺卡次数 (排班了但完全没有打卡记录)
+            (
+                SELECT COUNT(*)
+                FROM hr_schedule s
+                WHERE s.user_id = u.user_id
+                  AND DATE_FORMAT(s.work_date, '%Y-%m') = #{month}
+                  AND NOT EXISTS (
+                      SELECT 1 FROM hr_attendance_record ar
+                      WHERE ar.user_id = s.user_id
+                        AND DATE(ar.check_time) = s.work_date
+                  )
+            ) as missing_card_count
+        FROM sys_user u
+        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id
+        LEFT JOIN (
+            SELECT
+                user_id,
+                COUNT(DISTINCT DATE(check_time)) as attendance_days,
+                SUM(CASE WHEN result = '2' THEN 1 ELSE 0 END) as late_count,
+                SUM(CASE WHEN result = '3' THEN 1 ELSE 0 END) as early_leave_count
+            FROM hr_attendance_record
+            WHERE DATE_FORMAT(check_time, '%Y-%m') = #{month}
+            GROUP BY user_id
+        ) stats ON u.user_id = stats.user_id
+        WHERE u.del_flag = '0'
+        <if test="deptId != null">
+            AND u.dept_id = #{deptId}
+        </if>
     </select>
 
 </mapper>
-

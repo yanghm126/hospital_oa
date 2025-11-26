@@ -1,6 +1,7 @@
 package com.ruoyi.hr.controller;
 
 import java.util.List;
+import javax.servlet.http.HttpServletResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +18,7 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.hr.domain.HrShift;
 import com.ruoyi.hr.service.IHrShiftService;
+import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.page.TableDataInfo;
 
 /**
@@ -40,9 +42,31 @@ public class HrShiftController extends BaseController
     public TableDataInfo list(HrShift hrShift)
     {
         startPage();
-        // MP QueryWrapper logic can be added here
-        List<HrShift> list = hrShiftService.list();
+        List<HrShift> list = hrShiftService.selectHrShiftList(hrShift);
         return getDataTable(list);
+    }
+
+    /**
+     * 导出班次列表
+     */
+    @PreAuthorize("@ss.hasPermi('hr:shift:export')")
+    @Log(title = "班次", businessType = BusinessType.EXPORT)
+    @PostMapping("/export")
+    public void export(HttpServletResponse response, HrShift hrShift)
+    {
+        List<HrShift> list = hrShiftService.selectHrShiftList(hrShift);
+        ExcelUtil<HrShift> util = new ExcelUtil<HrShift>(HrShift.class);
+        util.exportExcel(response, list, "班次数据");
+    }
+
+    /**
+     * 获取班次详细信息
+     */
+    @PreAuthorize("@ss.hasPermi('hr:shift:query')")
+    @GetMapping(value = "/{shiftId}")
+    public AjaxResult getInfo(@PathVariable("shiftId") Long shiftId)
+    {
+        return AjaxResult.success(hrShiftService.selectHrShiftById(shiftId));
     }
 
     /**
@@ -54,7 +78,7 @@ public class HrShiftController extends BaseController
     public AjaxResult add(@RequestBody HrShift hrShift)
     {
         hrShift.setCreateBy(getUsername());
-        return toAjax(hrShiftService.save(hrShift));
+        return toAjax(hrShiftService.insertHrShift(hrShift));
     }
 
     /**
@@ -66,7 +90,7 @@ public class HrShiftController extends BaseController
     public AjaxResult edit(@RequestBody HrShift hrShift)
     {
         hrShift.setUpdateBy(getUsername());
-        return toAjax(hrShiftService.updateById(hrShift));
+        return toAjax(hrShiftService.updateHrShift(hrShift));
     }
 
     /**
@@ -77,7 +101,6 @@ public class HrShiftController extends BaseController
 	@DeleteMapping("/{shiftIds}")
     public AjaxResult remove(@PathVariable Long[] shiftIds)
     {
-        return toAjax(hrShiftService.removeBatchByIds(java.util.Arrays.asList(shiftIds)));
+        return toAjax(hrShiftService.deleteHrShiftByIds(shiftIds));
     }
 }
-

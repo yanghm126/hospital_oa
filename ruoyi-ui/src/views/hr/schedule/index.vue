@@ -54,10 +54,12 @@
         width="85"
         align="center"
       >
-        <!-- 自定义表头：显示 星期几 -->
-        <template slot="header">
-           <div>{{ day.dayNum }}</div>
-           <div style="font-size: 12px; font-weight: normal">{{ day.week }}</div>
+        <!-- 自定义表头：显示 星期几 (点击表头批量排班) -->
+        <template slot="header" slot-scope="scope">
+           <div class="day-header" @click="handleDayClick(day)" title="点击进行按日批量排班">
+               <div>{{ day.dayNum }}</div>
+               <div style="font-size: 12px; font-weight: normal">{{ day.week }}</div>
+           </div>
         </template>
         
         <template slot-scope="scope">
@@ -78,9 +80,12 @@
       </el-table-column>
     </el-table>
     
-    <!-- 批量填充弹窗 -->
-    <el-dialog title="批量填充" :visible.sync="fillDialogVisible" width="400px">
+    <!-- 批量填充弹窗 (按人) -->
+    <el-dialog title="按人批量排班" :visible.sync="fillDialogVisible" width="400px">
         <el-form label-width="80px">
+            <el-form-item label="当前员工">
+                <el-input v-if="currentRow" v-model="currentRow.userName" disabled />
+            </el-form-item>
             <el-form-item label="选择班次">
                  <el-select v-model="fillShiftId" placeholder="请选择">
                     <el-option
@@ -101,6 +106,39 @@
         <div slot="footer" class="dialog-footer">
             <el-button @click="fillDialogVisible = false">取 消</el-button>
             <el-button type="primary" @click="confirmBatchFill">确 定</el-button>
+        </div>
+    </el-dialog>
+
+    <!-- 按日批量排班弹窗 -->
+    <el-dialog :title="'按日批量排班 (' + currentDayStr + ')'" :visible.sync="dayDialogVisible" width="600px">
+        <el-form label-width="80px">
+            <el-form-item label="选择班次">
+                 <el-select v-model="dayFillShiftId" placeholder="请选择班次" style="width: 100%">
+                    <el-option
+                      v-for="shift in shiftOptions"
+                      :key="shift.shiftId"
+                      :label="shift.shiftName"
+                      :value="shift.shiftId"
+                    />
+                </el-select>
+            </el-form-item>
+            <el-form-item label="选择员工">
+                 <el-checkbox-group v-model="selectedUserIds">
+                    <el-checkbox 
+                        v-for="row in matrixData" 
+                        :key="row.userId" 
+                        :label="row.userId"
+                        border
+                        style="margin-right: 10px; margin-bottom: 10px;"
+                    >
+                        {{ row.userName }}
+                    </el-checkbox>
+                 </el-checkbox-group>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="dayDialogVisible = false">取 消</el-button>
+            <el-button type="primary" @click="confirmDayBatch">确 定</el-button>
         </div>
     </el-dialog>
 
@@ -136,7 +174,14 @@ export default {
       fillDialogVisible: false,
       currentRow: null,
       fillShiftId: null,
-      fillScope: 'empty'
+      fillScope: 'empty',
+
+      // 按日批量
+      dayDialogVisible: false,
+      currentDayStr: '', // 用于显示
+      currentDayNum: '', // 用于逻辑
+      dayFillShiftId: null,
+      selectedUserIds: []
     };
   },
   created() {
@@ -241,8 +286,37 @@ export default {
         this.fillDialogVisible = false;
         this.$modal.msgSuccess("填充完成，记得点击保存生效");
     },
+
+    // 7. 按日批量排班
+    handleDayClick(day) {
+        this.currentDayNum = day.dayNum;
+        this.currentDayStr = `${this.queryMonth}-${day.dayNum} ${day.week}`;
+        this.dayFillShiftId = null;
+        this.selectedUserIds = [];
+        this.dayDialogVisible = true;
+    },
+    confirmDayBatch() {
+        if (!this.dayFillShiftId) {
+            this.$modal.msgError("请选择班次");
+            return;
+        }
+        if (!this.selectedUserIds.length) {
+            this.$modal.msgError("请至少选择一名员工");
+            return;
+        }
+
+        // 遍历选中的员工，更新对应日期的班次
+        this.matrixData.forEach(row => {
+            if (this.selectedUserIds.includes(row.userId)) {
+                this.$set(row.scheduleMap, this.currentDayNum, this.dayFillShiftId);
+            }
+        });
+
+        this.dayDialogVisible = false;
+        this.$modal.msgSuccess("填充完成，记得点击保存生效");
+    },
     
-    // 7. 保存
+    // 8. 保存
     handleSave() {
       if (!this.matrixData.length) return;
       
@@ -304,6 +378,16 @@ export default {
     gap: 5px;
 }
 .user-cell:hover {
+    color: #409EFF;
+}
+.day-header {
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+.day-header:hover {
+    background-color: #f5f7fa;
     color: #409EFF;
 }
 /* 深度选择器修改select样式使其更紧凑 */
