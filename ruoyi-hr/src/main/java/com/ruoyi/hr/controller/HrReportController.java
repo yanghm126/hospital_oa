@@ -10,6 +10,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ruoyi.common.core.page.TableDataInfo;
+import com.ruoyi.common.utils.poi.ExcelUtil;
+import com.ruoyi.hr.domain.HrAttendanceRecord;
+import com.ruoyi.hr.domain.vo.HrAttendanceReportVO;
+import org.springframework.web.bind.annotation.PostMapping;
+import javax.servlet.http.HttpServletResponse;
+import java.util.List;
+
 /**
  * 考勤报表 Controller
  */
@@ -19,6 +27,30 @@ public class HrReportController extends BaseController
 {
     @Autowired
     private IAttendanceService attendanceService;
+
+    /**
+     * 查询考勤月报列表
+     */
+    @PreAuthorize("@ss.hasPermi('hr:report:list')")
+    @GetMapping("/list")
+    public TableDataInfo list(HrAttendanceRecord record)
+    {
+        startPage();
+        List<HrAttendanceReportVO> list = attendanceService.selectAttendanceReportList(record);
+        return getDataTable(list);
+    }
+
+    /**
+     * 导出考勤月报列表
+     */
+    @PreAuthorize("@ss.hasPermi('hr:report:export')")
+    @PostMapping("/export")
+    public void export(HttpServletResponse response, HrAttendanceRecord record)
+    {
+        List<HrAttendanceReportVO> list = attendanceService.selectAttendanceReportList(record);
+        ExcelUtil<HrAttendanceReportVO> util = new ExcelUtil<HrAttendanceReportVO>(HrAttendanceReportVO.class);
+        util.exportExcel(response, list, "考勤月报");
+    }
 
     /**
      * 获取个人月报数据

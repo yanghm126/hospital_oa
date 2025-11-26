@@ -7,6 +7,7 @@ import java.util.Date;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 /**
@@ -18,6 +19,12 @@ import com.baomidou.mybatisplus.annotation.TableName;
 @TableName("hr_attendance_record")
 public class HrAttendanceRecord extends BaseEntity {
     private static final long serialVersionUID = 1L;
+
+    @TableField(exist = false)
+    private String month;
+
+    @TableField(exist = false)
+    private Long deptId;
 
     private Long recordId;
 

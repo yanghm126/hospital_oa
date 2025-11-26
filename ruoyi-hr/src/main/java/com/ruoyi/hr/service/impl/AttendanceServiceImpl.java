@@ -14,6 +14,9 @@ import com.ruoyi.hr.domain.*;
 import com.ruoyi.hr.mapper.*;
 import com.ruoyi.hr.service.IAttendanceService;
 
+import com.ruoyi.hr.domain.vo.HrAttendanceReportVO;
+import java.util.List;
+
 @Service
 public class AttendanceServiceImpl implements IAttendanceService
 {
@@ -25,6 +28,12 @@ public class AttendanceServiceImpl implements IAttendanceService
 
     @Autowired
     private HrAttendanceMapper attendanceMapper; // 注入统计专用Mapper
+
+    @Override
+    public List<HrAttendanceReportVO> selectAttendanceReportList(HrAttendanceRecord record)
+    {
+        return attendanceMapper.selectAttendanceReport(record.getDeptId(), record.getMonth());
+    }
 
     @Autowired
     private HrScheduleMapper scheduleMapper;
@@ -70,8 +79,21 @@ public class AttendanceServiceImpl implements IAttendanceService
 
         if (schedule != null && schedule.getShiftId() != null) {
              HrShift shift = shiftMapper.selectById(schedule.getShiftId());
-             if (shift != null) {
-                 // TODO: 这里应解析 shift.startTime (HH:mm:ss) 与当前时间对比
+             // 外勤状态优先级最高，只有非外勤状态才判断迟到/早退
+             if (shift != null && !"4".equals(resultStatus)) {
+                 String nowTimeStr = DateUtils.parseDateToStr("HH:mm:ss", now);
+                 
+                 if ("1".equals(checkType)) {
+                     // 上班: 晚于开始时间为迟到
+                     if (shift.getStartTime() != null && nowTimeStr.compareTo(shift.getStartTime()) > 0) {
+                         resultStatus = "2";
+                     }
+                 } else if ("2".equals(checkType)) {
+                     // 下班: 早于结束时间为早退
+                     if (shift.getEndTime() != null && nowTimeStr.compareTo(shift.getEndTime()) < 0) {
+                         resultStatus = "3";
+                     }
+                 }
              }
         }
 

@@ -2,6 +2,9 @@ package com.ruoyi.hr.service;
 
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.hr.domain.ClockInBody;
+import com.ruoyi.hr.domain.HrAttendanceRecord;
+import com.ruoyi.hr.domain.vo.HrAttendanceReportVO;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -9,6 +12,13 @@ import java.util.Map;
  */
 public interface IAttendanceService
 {
+    /**
+     * 查询考勤月报列表
+     * @param record 考勤记录信息
+     * @return 考勤月报集合
+     */
+    public List<HrAttendanceReportVO> selectAttendanceReportList(HrAttendanceRecord record);
+
     /**
      * 移动端打卡
      * @param userId 用户ID
