@@ -66,7 +66,7 @@ public class HrShiftController extends BaseController
     @GetMapping(value = "/{shiftId}")
     public AjaxResult getInfo(@PathVariable("shiftId") Long shiftId)
     {
-        return AjaxResult.success(hrShiftService.selectHrShiftById(shiftId));
+        return AjaxResult.success(hrShiftService.getById(shiftId));
     }
 
     /**
