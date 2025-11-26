@@ -17,10 +17,16 @@
                 {{ scope.row.startTime }} 至 {{ scope.row.endTime }}
             </template>
         </el-table-column>
-        <el-table-column label="事由" prop="reason" />
+        <el-table-column label="事由" prop="reason" show-overflow-tooltip />
         <el-table-column label="申请时间" prop="createTime" width="160" />
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
             <template slot-scope="scope">
+                <el-button
+                  size="mini"
+                  type="text"
+                  icon="el-icon-view"
+                  @click="handleView(scope.row)"
+                >详情</el-button>
                 <el-button
                   size="mini"
                   type="text"
@@ -44,10 +50,40 @@
       :limit.sync="queryParams.pageSize"
       @pagination="getList"
     />
+
+    <!-- 详情弹窗 -->
+    <el-dialog title="审批详情" :visible.sync="detailOpen" width="500px" append-to-body>
+        <el-form ref="auditForm" :model="detailForm" label-width="80px" size="mini">
+            <el-form-item label="申请人">{{ detailForm.userName }}</el-form-item>
+            <el-form-item label="部门">{{ detailForm.deptName }}</el-form-item>
+            <el-form-item label="类型">
+                <el-tag v-if="detailForm.applyType === '1'">请假</el-tag>
+                <el-tag v-else type="warning">补卡</el-tag>
+            </el-form-item>
+            <el-form-item label="开始时间">{{ detailForm.startTime }}</el-form-item>
+            <el-form-item label="结束时间">{{ detailForm.endTime }}</el-form-item>
+            <el-form-item label="事由">{{ detailForm.reason }}</el-form-item>
+            <el-form-item label="申请时间">{{ detailForm.createTime }}</el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+             <el-button type="primary" @click="handleAuditInDialog('1')">通 过</el-button>
+             <el-button type="danger" @click="handleAuditInDialog('2')">驳 回</el-button>
+             <el-button @click="detailOpen = false">关 闭</el-button>
+        </div>
+    </el-dialog>
+
   </div>
 </template>
 
 <script>
+// {{RIPER-5:
+//   Action: "Modified"
+//   Task_ID: "594d27c0-2c10-42ea-aeee-c03b1309321a"
+//   Timestamp: "2025-11-26"
+//   Authoring_Role: "LD"
+//   Principle_Applied: "Enhanced Visibility (Details Dialog)"
+//   Quality_Check: "Added detail view and unified audit logic."
+// }}
 import { listTodoAudit, auditApply } from "@/api/hr/audit";
 
 export default {
@@ -59,7 +95,10 @@ export default {
       queryParams: {
         pageNum: 1,
         pageSize: 10
-      }
+      },
+      // 详情弹窗
+      detailOpen: false,
+      detailForm: {}
     };
   },
   created() {
@@ -73,6 +112,14 @@ export default {
         this.total = res.total;
         this.loading = false;
       });
+    },
+    handleView(row) {
+        this.detailForm = row;
+        this.detailOpen = true;
+    },
+    handleAuditInDialog(status) {
+        this.handleAudit(this.detailForm, status);
+        this.detailOpen = false; // 关闭弹窗
     },
     handleAudit(row, status) {
         const action = status === '1' ? '通过' : '驳回';
@@ -93,4 +140,3 @@ export default {
   }
 };
 </script>
-

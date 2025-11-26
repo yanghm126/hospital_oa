@@ -69,7 +69,7 @@
       <el-table-column label="下班时间" align="center" prop="endTime" />
       <el-table-column label="是否跨天" align="center" prop="crossDay">
         <template slot-scope="scope">
-          <el-tag v-if="scope.row.crossDay === 'Y' || scope.row.crossDay === 1">是</el-tag>
+          <el-tag type="warning" v-if="scope.row.crossDay === 'Y' || scope.row.crossDay === 1">是</el-tag>
           <el-tag v-else type="info">否</el-tag>
         </template>
       </el-table-column>
@@ -112,6 +112,8 @@
           <el-time-picker
             v-model="form.startTime"
             value-format="HH:mm:ss"
+            format="HH:mm"
+            step="00:30"
             placeholder="选择上班时间">
           </el-time-picker>
         </el-form-item>
@@ -119,6 +121,8 @@
           <el-time-picker
             v-model="form.endTime"
             value-format="HH:mm:ss"
+            format="HH:mm"
+            step="00:30"
             placeholder="选择下班时间">
           </el-time-picker>
         </el-form-item>
@@ -141,11 +145,31 @@
 </template>
 
 <script>
+// {{RIPER-5:
+//   Action: "Modified"
+//   Task_ID: "9b0b86f2-b34c-474e-bd1a-0925fd534a0d"
+//   Timestamp: "2025-11-26"
+//   Authoring_Role: "LD"
+//   Principle_Applied: "UX Enhancement & Validation"
+//   Quality_Check: "Added endTime validation and improved UI tags."
+// }}
 import { listShift, getShift, delShift, addShift, updateShift } from "@/api/hr/shift";
 
 export default {
   name: "Shift",
   data() {
+    var validateEndTime = (rule, value, callback) => {
+      if (!value) {
+        callback(new Error("下班时间不能为空"));
+      } else {
+        // 如果不是跨天，结束时间必须大于开始时间
+        if (this.form.crossDay === 'N' && this.form.startTime && value <= this.form.startTime) {
+          callback(new Error("非跨天班次，下班时间必须晚于上班时间"));
+        } else {
+          callback();
+        }
+      }
+    };
     return {
       // 遮罩层
       loading: true,
@@ -182,7 +206,7 @@ export default {
           { required: true, message: "上班时间不能为空", trigger: "change" }
         ],
         endTime: [
-          { required: true, message: "下班时间不能为空", trigger: "change" }
+          { required: true, validator: validateEndTime, trigger: "change" }
         ]
       }
     };

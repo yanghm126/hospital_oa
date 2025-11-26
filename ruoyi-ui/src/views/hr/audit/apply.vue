@@ -72,6 +72,14 @@
 </template>
 
 <script>
+// {{RIPER-5:
+//   Action: "Modified"
+//   Task_ID: "594d27c0-2c10-42ea-aeee-c03b1309321a"
+//   Timestamp: "2025-11-26"
+//   Authoring_Role: "LD"
+//   Principle_Applied: "UI Logic & Validation"
+//   Quality_Check: "Conditional rendering for endTime and proper validation."
+// }}
 import { listMyApply, submitApply } from "@/api/hr/audit";
 
 export default {
@@ -91,6 +99,13 @@ export default {
       rules: {
           applyType: [{ required: true, message: "请选择类型", trigger: "change" }],
           startTime: [{ required: true, message: "请选择时间", trigger: "blur" }],
+          endTime: [
+             { required: true, message: "请选择结束时间", trigger: "blur" },
+             { validator: (rule, value, cb) => {
+                 if(this.form.startTime && value <= this.form.startTime) cb(new Error("结束时间必须晚于开始时间"));
+                 else cb();
+             }, trigger: "change" }
+          ],
           reason: [{ required: true, message: "请输入事由", trigger: "blur" }]
       }
     };
@@ -138,4 +153,3 @@ export default {
   }
 };
 </script>
-
