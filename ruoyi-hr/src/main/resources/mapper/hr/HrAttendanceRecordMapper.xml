@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.hr.mapper.HrAttendanceRecordMapper">
+    
+    <resultMap type="HrAttendanceRecord" id="HrAttendanceRecordResult">
+        <result property="recordId"    column="record_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="checkTime"    column="check_time"    />
+        <result property="checkType"    column="check_type"    />
+        <result property="result"    column="result"    />
+        <result property="latitude"    column="latitude"    />
+        <result property="longitude"    column="longitude"    />
+        <result property="address"    column="address"    />
+        <result property="distance"    column="distance"    />
+        <result property="deviceInfo"    column="device_info"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <sql id="selectHrAttendanceRecordVo">
+        select record_id, user_id, check_time, check_type, result, latitude, longitude, address, distance, device_info, create_by, create_time, update_by, update_time, remark from hr_attendance_record
+    </sql>
+
+</mapper>
+

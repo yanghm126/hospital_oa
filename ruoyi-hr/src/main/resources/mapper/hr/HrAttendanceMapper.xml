@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.hr.mapper.HrAttendanceMapper">
+
+    <resultMap type="com.ruoyi.hr.domain.HrAttendanceRecord" id="HrAttendanceRecordResult">
+        <result property="recordId"    column="record_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="checkTime"    column="check_time"    />
+        <result property="checkType"    column="check_type"    />
+        <result property="result"    column="result"    />
+        <result property="latitude"    column="latitude"    />
+        <result property="longitude"    column="longitude"    />
+        <result property="address"    column="address"    />
+        <result property="distance"    column="distance"    />
+        <result property="deviceInfo"    column="device_info"    />
+    </resultMap>
+
+    <insert id="insertHrAttendanceRecord" parameterType="com.ruoyi.hr.domain.HrAttendanceRecord" useGeneratedKeys="true" keyProperty="recordId">
+        insert into hr_attendance_record
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="checkTime != null">check_time,</if>
+            <if test="checkType != null">check_type,</if>
+            <if test="result != null">result,</if>
+            <if test="latitude != null">latitude,</if>
+            <if test="longitude != null">longitude,</if>
+            <if test="address != null">address,</if>
+            <if test="distance != null">distance,</if>
+            <if test="deviceInfo != null">device_info,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="checkTime != null">#{checkTime},</if>
+            <if test="checkType != null">#{checkType},</if>
+            <if test="result != null">#{result},</if>
+            <if test="latitude != null">#{latitude},</if>
+            <if test="longitude != null">#{longitude},</if>
+            <if test="address != null">#{address},</if>
+            <if test="distance != null">#{distance},</if>
+            <if test="deviceInfo != null">#{deviceInfo},</if>
+         </trim>
+    </insert>
+
+    <!-- 1. 个人月报统计 -->
+    <select id="selectPersonalMonthlyStats" resultType="java.util.Map">
+        SELECT
+            COUNT(CASE WHEN result = '1' THEN 1 END) as normalDays,
+            COUNT(CASE WHEN result = '2' THEN 1 END) as lateCount,
+            COUNT(CASE WHEN result = '3' THEN 1 END) as earlyLeaveCount,
+            COUNT(CASE WHEN result = '5' THEN 1 END) as missingCount,
+            COUNT(CASE WHEN result = '4' THEN 1 END) as fieldWorkCount,
+            -- 假设请假需要在关联其他表，这里暂用缺卡代替演示，或者扩展result状态
+            0 as leaveDays
+        FROM hr_attendance_record
+        WHERE user_id = #{userId}
+          AND DATE_FORMAT(check_time, '%Y-%m') = #{month}
+    </select>
+
+    <!-- 2.1 统计科室异常人数 (有迟到/早退/缺卡记录的人数) -->
+    <select id="selectDeptAbnormalCount" resultType="int">
+        SELECT COUNT(DISTINCT r.user_id)
+        FROM hr_attendance_record r
+        LEFT JOIN sys_user u ON r.user_id = u.user_id
+        WHERE u.dept_id = #{deptId}
+          AND DATE_FORMAT(r.check_time, '%Y-%m') = #{month}
+          AND r.result IN ('2', '3', '5')
+    </select>
+
+    <!-- 2.2 统计科室计划总人天 (排除休息日 shift_id=0) -->
+    <select id="selectDeptScheduledCount" resultType="int">
+        SELECT COUNT(*)
+        FROM hr_schedule s
+        WHERE s.dept_id = #{deptId}
+          AND DATE_FORMAT(s.work_date, '%Y-%m') = #{month}
+          AND s.shift_id != 0
+    </select>
+
+    <!-- 2.3 统计科室实际正常打卡次数 (这里简单按上班卡算) -->
+    <select id="selectDeptActualNormalCount" resultType="int">
+        SELECT COUNT(*)
+        FROM hr_attendance_record r
+        LEFT JOIN sys_user u ON r.user_id = u.user_id
+        WHERE u.dept_id = #{deptId}
+          AND DATE_FORMAT(r.check_time, '%Y-%m') = #{month}
+          AND r.result = '1'
+          AND r.check_type = '1' -- 仅计算上班卡，避免下班卡重复计算出勤率
+    </select>
+
+</mapper>
+
