@@ -8,7 +8,9 @@ import java.util.List;
 import javax.sql.DataSource;
 import org.apache.ibatis.io.VFS;
 import org.apache.ibatis.session.SqlSessionFactory;
-import org.mybatis.spring.SqlSessionFactoryBean;
+// [修改点 1] 引入 MyBatis Plus 的工厂 Bean
+import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
+// import org.mybatis.spring.SqlSessionFactoryBean; // 注释掉原生 MyBatis 工厂类
 import org.mybatis.spring.boot.autoconfigure.SpringBootVFS;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -26,8 +28,7 @@ import com.ruoyi.common.utils.StringUtils;
 
 /**
  * Mybatis支持*匹配扫描包
- * 
- * @author ruoyi
+ * * @author ruoyi
  */
 @Configuration
 public class MyBatisConfig
@@ -120,13 +121,15 @@ public class MyBatisConfig
         String mapperLocations = env.getProperty("mybatis.mapperLocations");
         String configLocation = env.getProperty("mybatis.configLocation");
         typeAliasesPackage = setTypeAliasesPackage(typeAliasesPackage);
-        VFS.addImplClass(SpringBootVFS.class);
+        // VFS.addImplClass(SpringBootVFS.class); // MP 环境下通常不需要手动设置这个，或者由 MP 自动处理
 
-        final SqlSessionFactoryBean sessionFactory = new SqlSessionFactoryBean();
+        // [修改点 2] 使用 MybatisSqlSessionFactoryBean 替换 SqlSessionFactoryBean
+        final MybatisSqlSessionFactoryBean sessionFactory = new MybatisSqlSessionFactoryBean();
         sessionFactory.setDataSource(dataSource);
         sessionFactory.setTypeAliasesPackage(typeAliasesPackage);
         sessionFactory.setMapperLocations(resolveMapperLocations(StringUtils.split(mapperLocations, ",")));
         sessionFactory.setConfigLocation(new DefaultResourceLoader().getResource(configLocation));
+
         return sessionFactory.getObject();
     }
 }
