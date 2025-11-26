@@ -9,6 +9,12 @@
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
+      <el-form-item label="状态" prop="status">
+        <el-select v-model="queryParams.status" placeholder="班次状态" clearable>
+          <el-option label="正常" value="0" />
+          <el-option label="停用" value="1" />
+        </el-select>
+      </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
         <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
@@ -63,18 +69,43 @@
 
     <el-table v-loading="loading" :data="shiftList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="班次ID" align="center" prop="shiftId" />
-      <el-table-column label="班次名称" align="center" prop="shiftName" />
-      <el-table-column label="上班时间" align="center" prop="startTime" />
-      <el-table-column label="下班时间" align="center" prop="endTime" />
-      <el-table-column label="是否跨天" align="center" prop="crossDay">
+      <el-table-column label="班次名称" align="center" prop="shiftName" min-width="100" />
+      <el-table-column label="上班时间" align="center" prop="startTime" width="100">
         <template slot-scope="scope">
-          <el-tag type="warning" v-if="scope.row.crossDay === 'Y' || scope.row.crossDay === 1">是</el-tag>
+          {{ formatTime(scope.row.startTime) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="下班时间" align="center" prop="endTime" width="100">
+        <template slot-scope="scope">
+          {{ formatTime(scope.row.endTime) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="跨天" align="center" prop="crossDay" width="70">
+        <template slot-scope="scope">
+          <el-tag type="warning" v-if="scope.row.crossDay === 1">是</el-tag>
           <el-tag v-else type="info">否</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="备注" align="center" prop="remark" />
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+      <el-table-column label="迟到容忍" align="center" prop="lateMinutes" width="90">
+        <template slot-scope="scope">
+          <span v-if="scope.row.lateMinutes">{{ scope.row.lateMinutes }}分钟</span>
+          <span v-else class="text-muted">-</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="早退容忍" align="center" prop="earlyLeaveMinutes" width="90">
+        <template slot-scope="scope">
+          <span v-if="scope.row.earlyLeaveMinutes">{{ scope.row.earlyLeaveMinutes }}分钟</span>
+          <span v-else class="text-muted">-</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" align="center" prop="status" width="80">
+        <template slot-scope="scope">
+          <el-tag type="success" v-if="scope.row.status === '0'">正常</el-tag>
+          <el-tag type="danger" v-else>停用</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="备注" align="center" prop="remark" show-overflow-tooltip />
+      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="150">
         <template slot-scope="scope">
           <el-button
             size="mini"
@@ -103,37 +134,73 @@
     />
 
     <!-- 添加或修改班次对话框 -->
-    <el-dialog :title="title" :visible.sync="open" width="500px" append-to-body>
-      <el-form ref="form" :model="form" :rules="rules" label-width="80px">
+    <el-dialog :title="title" :visible.sync="open" width="550px" append-to-body>
+      <el-form ref="form" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="班次名称" prop="shiftName">
           <el-input v-model="form.shiftName" placeholder="请输入班次名称" />
         </el-form-item>
-        <el-form-item label="上班时间" prop="startTime">
-          <el-time-picker
-            v-model="form.startTime"
-            value-format="HH:mm:ss"
-            format="HH:mm"
-            step="00:30"
-            placeholder="选择上班时间">
-          </el-time-picker>
-        </el-form-item>
-        <el-form-item label="下班时间" prop="endTime">
-          <el-time-picker
-            v-model="form.endTime"
-            value-format="HH:mm:ss"
-            format="HH:mm"
-            step="00:30"
-            placeholder="选择下班时间">
-          </el-time-picker>
-        </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="上班时间" prop="startTime">
+              <el-time-picker
+                v-model="form.startTime"
+                value-format="HH:mm:ss"
+                format="HH:mm"
+                placeholder="选择上班时间"
+                style="width: 100%">
+              </el-time-picker>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="下班时间" prop="endTime">
+              <el-time-picker
+                v-model="form.endTime"
+                value-format="HH:mm:ss"
+                format="HH:mm"
+                placeholder="选择下班时间"
+                style="width: 100%">
+              </el-time-picker>
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-form-item label="是否跨天" prop="crossDay">
           <el-radio-group v-model="form.crossDay">
-            <el-radio label="Y">是</el-radio>
-            <el-radio label="N">否</el-radio>
+            <el-radio :label="1">是（下班时间为次日）</el-radio>
+            <el-radio :label="0">否</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="迟到容忍" prop="lateMinutes">
+              <el-input-number 
+                v-model="form.lateMinutes" 
+                :min="0" 
+                :max="60" 
+                placeholder="分钟"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="早退容忍" prop="earlyLeaveMinutes">
+              <el-input-number 
+                v-model="form.earlyLeaveMinutes" 
+                :min="0" 
+                :max="60" 
+                placeholder="分钟"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="状态" prop="status">
+          <el-radio-group v-model="form.status">
+            <el-radio label="0">正常</el-radio>
+            <el-radio label="1">停用</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
+          <el-input v-model="form.remark" type="textarea" placeholder="请输入备注内容" :rows="2" />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -150,20 +217,20 @@
 //   Task_ID: "9b0b86f2-b34c-474e-bd1a-0925fd534a0d"
 //   Timestamp: "2025-11-26"
 //   Authoring_Role: "LD"
-//   Principle_Applied: "UX Enhancement & Validation"
-//   Quality_Check: "Added endTime validation and improved UI tags."
+//   Principle_Applied: "数据一致性 & 功能完善"
+//   Quality_Check: "修复crossDay数据类型，添加容忍时长和状态字段"
 // }}
 import { listShift, getShift, delShift, addShift, updateShift } from "@/api/hr/shift";
 
 export default {
   name: "Shift",
   data() {
-    var validateEndTime = (rule, value, callback) => {
+    const validateEndTime = (rule, value, callback) => {
       if (!value) {
         callback(new Error("下班时间不能为空"));
       } else {
         // 如果不是跨天，结束时间必须大于开始时间
-        if (this.form.crossDay === 'N' && this.form.startTime && value <= this.form.startTime) {
+        if (this.form.crossDay === 0 && this.form.startTime && value <= this.form.startTime) {
           callback(new Error("非跨天班次，下班时间必须晚于上班时间"));
         } else {
           callback();
@@ -194,6 +261,7 @@ export default {
         pageNum: 1,
         pageSize: 10,
         shiftName: null,
+        status: null,
       },
       // 表单参数
       form: {},
@@ -207,6 +275,9 @@ export default {
         ],
         endTime: [
           { required: true, validator: validateEndTime, trigger: "change" }
+        ],
+        crossDay: [
+          { required: true, message: "请选择是否跨天", trigger: "change" }
         ]
       }
     };
@@ -236,10 +307,22 @@ export default {
         shiftName: null,
         startTime: null,
         endTime: null,
-        crossDay: 'N',
+        crossDay: 0,
+        lateMinutes: 0,
+        earlyLeaveMinutes: 0,
+        status: '0',
         remark: null
       };
       this.resetForm("form");
+    },
+    /** 格式化时间显示 */
+    formatTime(time) {
+      if (!time) return '-';
+      // 如果是 HH:mm:ss 格式，只取 HH:mm
+      if (time.length > 5) {
+        return time.substring(0, 5);
+      }
+      return time;
     },
     /** 搜索按钮操作 */
     handleQuery() {
@@ -312,3 +395,9 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+.text-muted {
+  color: #909399;
+}
+</style>
