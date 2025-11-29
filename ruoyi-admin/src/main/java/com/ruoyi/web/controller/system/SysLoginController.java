@@ -88,7 +88,7 @@ public class SysLoginController
         ajax.put("roles", roles);
         ajax.put("permissions", permissions);
         ajax.put("isDefaultModifyPwd", initPasswordIsModify(user.getPwdUpdateDate()));
-        ajax.put("isPasswordExpired", passwordIsExpiration(user.getPwdUpdateDate()));
+        ajax.put("isPasswordExpired", passwordIsExpired(user.getPwdUpdateDate()));
         return ajax;
     }
 
@@ -113,7 +113,7 @@ public class SysLoginController
     }
 
     // 检查密码是否过期
-    public boolean passwordIsExpiration(Date pwdUpdateDate)
+    public boolean passwordIsExpired(Date pwdUpdateDate)
     {
         Integer passwordValidateDays = Convert.toInt(configService.selectConfigByKey("sys.account.passwordValidateDays"));
         if (passwordValidateDays != null && passwordValidateDays > 0)
