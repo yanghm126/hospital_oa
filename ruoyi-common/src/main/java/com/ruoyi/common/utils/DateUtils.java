@@ -139,9 +139,10 @@ public class DateUtils extends org.apache.commons.lang3.time.DateUtils
     /**
      * 计算相差天数
      */
-    public static int differentDaysByMillisecond(Date date1, Date date2)
+    public static long differentDaysByMillisecond(Date date1, Date date2)
     {
-        return Math.abs((int) ((date2.getTime() - date1.getTime()) / (1000 * 3600 * 24)));
+        long diffInMillis = date2.getTime() - date1.getTime();
+        return Math.abs(diffInMillis / (1000 * 3600 * 24));
     }
 
     /**
@@ -150,9 +151,14 @@ public class DateUtils extends org.apache.commons.lang3.time.DateUtils
      * @param endDate 最后时间
      * @param startTime 开始时间
      * @return 时间差（天/小时/分钟）
+     * @throws IllegalArgumentException 当开始时间或结束时间为空时抛出
      */
     public static String timeDistance(Date endDate, Date startTime)
     {
+        if (endDate == null || startTime == null)
+        {
+            throw new IllegalArgumentException("Start time and end time must not be null");
+        }
         long nd = 1000 * 24 * 60 * 60;
         long nh = 1000 * 60 * 60;
         long nm = 1000 * 60;
